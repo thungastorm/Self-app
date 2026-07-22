@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHELF — find recipes from what's on hand</title>
+<meta name="description" content="Find easy recipes across world cuisines using only the ingredients you already have.">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#221912">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SHELF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #221912;
+    --bg-2: #2b2018;
+    --card: #faf1df;
+    --card-2: #f2e6cd;
+    --ink: #9a3e0d;
+    --ink-soft: #b8672f;
+    --cream: #f3e9d8;
+    --cream-dim: #cdbfa9;
+    --turmeric: #e0a526;
+    --turmeric-deep: #b9821b;
+    --sage: #6f8f5e;
+    --sage-deep: #52694a;
+    --paprika: #bd4a2c;
+    --paprika-deep: #8f3620;
+    --line: rgba(243,233,216,0.14);
+    --radius: 18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(224,165,38,0.08), transparent 55%),
+      radial-gradient(ellipse at 90% 0%, rgba(111,143,94,0.10), transparent 50%),
+      var(--bg);
+    color:var(--cream);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--turmeric); color:#221912;}
+
+  a{color:inherit;}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:32px 24px 80px;}
+
+  /* ---------- Header ---------- */
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:24px; margin-bottom:28px; flex-wrap:wrap;
+    border-bottom:1px solid var(--line); padding-bottom:24px;
+  }
+  .wordmark{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:clamp(2.4rem, 5vw, 3.6rem);
+    line-height:0.95;
+    letter-spacing:-0.01em;
+  }
+  .wordmark .accent{ color:var(--turmeric); font-style:italic; font-weight:500;}
+  .tagline{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    color:var(--cream-dim);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    max-width:260px;
+    text-align:right;
+    line-height:1.6;
+  }
+
+  /* ---------- Selected tray ---------- */
+  .tray{
+    position:sticky; top:12px; z-index:30;
+    background:rgba(34,25,18,0.92);
+    backdrop-filter:blur(10px);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px 16px;
+    margin-bottom:28px;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    min-height:26px;
+  }
+  .tray .tray-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--turmeric);
+    white-space:nowrap;
+  }
+  .tray-empty{color:var(--cream-dim); font-size:0.88rem; font-style:italic;}
+  .chip-selected{
+    display:inline-flex; align-items:center; gap:7px;
+    background:var(--turmeric); color:#241a0d;
+    border-radius:999px; padding:6px 8px 6px 14px;
+    font-size:0.85rem; font-weight:600;
+    white-space:nowrap;
+  }
+  .chip-selected button{
+    background:rgba(0,0,0,0.18); border:none; color:#241a0d;
+    width:18px; height:18px; border-radius:50%; cursor:pointer;
+    font-size:0.75rem; line-height:1; display:flex; align-items:center; justify-content:center;
+    font-family:inherit;
+  }
+  .chip-selected button:hover{background:rgba(0,0,0,0.32);}
+  .clear-all{
+    margin-left:auto;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--cream-dim);
+    background:none; border:1px solid var(--line); border-radius:999px;
+    padding:7px 14px; cursor:pointer;
+  }
+  .clear-all:hover{color:var(--cream); border-color:var(--cream-dim);}
+
+  /* ---------- Search ---------- */
+  .search-row{margin-bottom:18px; position:relative;}
+  .search-box{
+    width:100%; background:var(--bg-2); border:1px solid var(--line);
+    border-radius:12px; padding:13px 16px; color:var(--cream);
+    font-family:'Inter',sans-serif; font-size:0.95rem; outline:none;
+  }
+  .search-box::placeholder{color:var(--cream-dim);}
+  .search-box:focus{border-color:var(--turmeric);}
+  .search-hint{
+    font-family:'IBM Plex Mono', monospace; font-size:0.7rem; color:var(--cream-dim);
+    margin-top:8px; letter-spacing:0.02em;
+  }
+  .suggest-box{
+    position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:40;
+    background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+    max-height:260px; overflow-y:auto; box-shadow:0 12px 30px rgba(0,0,0,0.35);
+  }
+  .suggest-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:11px 16px; cursor:pointer; font-size:0.9rem;
+    border-bottom:1px solid var(--line);
+  }
+  .suggest-item:last-child{border-bottom:none;}
+  .suggest-item:hover, .suggest-item.active-hover{background:rgba(224,165,38,0.12);}
+  .suggest-item .cat-tag{
+    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; text-transform:uppercase;
+    color:var(--cream-dim); letter-spacing:0.05em;
+  }
+  .suggest-item.already .cat-tag{color:var(--sage);}
+  .suggest-empty{padding:14px 16px; font-size:0.85rem; color:var(--cream-dim); font-style:italic;}
+
+  /* ---------- Shelf categories ---------- */
+  .shelf{
+    display:flex; flex-direction:column; gap:4px;
+    margin-bottom:36px;
+  }
+  .category{
+    border-bottom:1px solid var(--line);
+  }
+  .category-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 2px; cursor:pointer; user-select:none;
+  }
+  .category-head h3{
+    font-family:'Fraunces', serif; font-weight:600; font-size:1.05rem; margin:0;
+  }
+  .category-head .count{
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--cream-dim);
+  }
+  .category-head .caret{
+    color:var(--turmeric); font-size:0.8rem; transition:transform 0.2s ease;
+  }
+  .category.open .caret{transform:rotate(90deg);}
+  .category-body{
+    display:none; flex-wrap:wrap; gap:8px; padding:2px 2px 18px;
+  }
+  .category.open .category-body{display:flex;}
+  .ing-chip{
+    background:var(--bg-2); border:1px solid var(--line); color:var(--cream);
+    border-radius:999px; padding:7px 14px; font-size:0.86rem; cursor:pointer;
+    transition:border-color 0.15s ease, background 0.15s ease;
+    font-family:'Inter',sans-serif;
+  }
+  .ing-chip:hover{border-color:var(--sage);}
+  .ing-chip.on{
+    background:var(--sage); border-color:var(--sage); color:#16220f; font-weight:600;
+  }
+
+  /* ---------- Results header ---------- */
+  .results-head{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:20px; flex-wrap:wrap; gap:12px;
+    border-top:1px solid var(--line); padding-top:24px;
+  }
+  .results-head h2{
+    font-family:'Fraunces', serif; font-weight:600; font-size:1.4rem; margin:0;
+  }
+  .results-head .sub{font-family:'IBM Plex Mono', monospace; font-size:0.75rem; color:var(--cream-dim); margin-top:4px;}
+  .toggle-group{display:flex; gap:0; border:1px solid var(--line); border-radius:999px; overflow:hidden;}
+  .toggle-group button{
+    background:none; border:none; color:var(--cream-dim);
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em;
+    padding:9px 16px; cursor:pointer;
+  }
+  .toggle-group button.active{background:var(--turmeric); color:#241a0d; font-weight:600;}
+
+  /* ---------- Empty state ---------- */
+  .empty-state{
+    text-align:center; padding:70px 20px; border:1px dashed var(--line); border-radius:var(--radius);
+    color:var(--cream-dim);
+  }
+  .empty-state .icon{font-size:2.2rem; margin-bottom:14px;}
+  .empty-state h3{font-family:'Fraunces', serif; color:var(--cream); font-weight:600; font-size:1.3rem; margin:0 0 8px;}
+  .empty-state p{font-size:0.92rem; max-width:360px; margin:0 auto;}
+
+  /* ---------- Recipe grid ---------- */
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:18px;
+  }
+  .rcard{
+    background:var(--card); color:var(--ink); border-radius:var(--radius);
+    padding:20px; display:flex; flex-direction:column; gap:14px;
+    position:relative; overflow:hidden;
+  }
+  .rcard::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:4px;
+    background:linear-gradient(90deg, var(--sage), var(--turmeric));
+    opacity:0.85;
+  }
+  .rcard-top{display:flex; justify-content:space-between; gap:14px; align-items:flex-start;}
+  .rcard-title-block{flex:1; min-width:0;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:0.68rem; text-transform:uppercase;
+    letter-spacing:0.08em; color:var(--paprika-deep); font-weight:500;
+  }
+  .rcard h3{
+    font-family:'Fraunces', serif; font-weight:700; font-size:1.28rem; margin:4px 0 0;
+    line-height:1.15;
+  }
+  .rcard .meta{
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--ink-soft); margin-top:6px;
+  }
+
+  /* dial */
+  .dial{width:58px; height:58px; position:relative; flex-shrink:0;}
+  .dial svg{transform:rotate(-90deg);}
+  .dial .track{fill:none; stroke:rgba(42,32,24,0.12); stroke-width:6;}
+  .dial .fill{fill:none; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1);}
+  .dial .pct{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace; font-weight:500; font-size:0.72rem; color:var(--ink);
+  }
+
+  .ing-lists{display:flex; flex-direction:column; gap:8px;}
+  .ing-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+  .ing-row .label{
+    font-family:'IBM Plex Mono', monospace; font-size:0.66rem; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--ink-soft); width:52px; flex-shrink:0;
+  }
+  .tag{
+    border-radius:6px; padding:3px 9px; font-size:0.78rem; font-weight:500;
+    white-space:nowrap;
+  }
+  .tag.have{background:rgba(111,143,94,0.18); color:var(--sage-deep);}
+  .tag.need{background:rgba(189,74,44,0.14); color:var(--paprika-deep);}
+
+  .steps{
+    border-top:1px solid rgba(42,32,24,0.1); padding-top:12px; margin-top:2px;
+  }
+  .steps summary{
+    cursor:pointer; font-family:'IBM Plex Mono', monospace; font-size:0.7rem;
+    text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft);
+  }
+  .steps ol{margin:10px 0 0; padding-left:18px; font-size:0.87rem; line-height:1.5; color:var(--ink);}
+  .steps li{margin-bottom:5px;}
+
+  footer.note{
+    margin-top:50px; padding-top:20px; border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--cream-dim); line-height:1.7;
+  }
+
+  @media (max-width:640px){
+    .wordmark{font-size:2.2rem;}
+    .tagline{text-align:left; max-width:none;}
+    header.top{flex-direction:column; align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="wordmark">SHELF<span class="accent">.</span></div>
+    <div class="tagline">Search what's on hand.<br>Get the best recipe you can make right now.</div>
+  </header>
+
+  <div class="tray" id="tray">
+    <span class="tray-label">On hand</span>
+    <span class="tray-empty" id="trayEmpty">Nothing selected yet — tap ingredients below.</span>
+  </div>
+
+  <div class="search-row">
+    <input class="search-box" id="searchBox" type="text" autocomplete="off" placeholder="Search and add an ingredient — chicken, ginger, paprika…">
+    <div class="suggest-box" id="suggestBox" style="display:none;"></div>
+    <div class="search-hint">Type to search, then click or press Enter to add it to your shelf.</div>
+  </div>
+
+  <div class="shelf" id="shelf"></div>
+
+  <div class="results-head">
+    <div>
+      <h2 id="resultsTitle">Your shelf is empty</h2>
+      <div class="sub" id="resultsSub">Select ingredients above to see what you can cook</div>
+    </div>
+    <div class="toggle-group" id="viewToggle">
+      <button data-mode="diverse" class="active">One per cuisine</button>
+      <button data-mode="all">All matches</button>
+    </div>
+  </div>
+
+  <div id="resultsArea"></div>
+
+  <footer class="note">
+    Only recipes that are at least a 50% match to your shelf are shown. Match % is based on core ingredients — salt, olive oil, and black pepper are treated as pantry staples you already have, so they never count against a recipe.
+  </footer>
+
+</div>
+
+<script>
+/* ---------------- Data ---------------- */
+const STAPLES = new Set(['salt','olive oil','black pepper']);
+
+const CATEGORIES = [
+  { name: 'Proteins & Legumes', items: ['chicken','shrimp','salmon','pork','beef','ground beef','chickpeas','black beans','egg'] },
+  { name: 'Produce & Aromatics', items: ['garlic','ginger','onion','scallion','tomato','lemon','lime','bell pepper','zucchini','spinach','cucumber','chili pepper','corn','avocado','kimchi','broccoli'] },
+  { name: 'Herbs', items: ['basil','parsley','thyme','oregano','lemongrass'] },
+  { name: 'Spices & Seasoning', items: ['paprika','smoked paprika','cumin','coriander seed','garam masala','curry powder','cayenne pepper','chili powder','chili flakes','black pepper','white pepper','salt','turmeric','cinnamon','nutmeg','clove','cardamom','allspice','fennel seed','mustard seed','fenugreek','saffron','star anise','five spice','sumac','za\'atar','garlic powder','onion powder','ginger powder','ras el hanout','berbere','old bay','italian seasoning','herbes de provence'] },
+  { name: 'Dairy', items: ['butter','cream','yogurt','feta','parmesan'] },
+  { name: 'Grains & Starches', items: ['rice','pasta','tortilla','rice noodles','noodles','flour'] },
+  { name: 'Pantry & Sauces', items: ['soy sauce','sesame oil','honey','fish sauce','gochujang','miso','harissa','tahini','mustard','coconut milk','olive oil','cornstarch','sugar','capers','peanut butter','stock'] },
+];
+
+const RECIPES = [
+  {name:'Garlic Butter Shrimp Pasta', cuisine:'Italian', time:20, ingredients:['shrimp','pasta','garlic','butter','parsley','lemon','chili flakes','parmesan'],
+   steps:['Boil pasta until just tender.','Sauté shrimp and garlic in butter with chili flakes until pink.','Toss with pasta, lemon juice, parsley and parmesan.']},
+  {name:'Chicken Piccata', cuisine:'Italian', time:25, ingredients:['chicken','lemon','capers','butter','garlic','parsley','flour'],
+   steps:['Dredge thin chicken cutlets in flour and pan-sear.','Build a pan sauce with garlic, lemon, capers and butter.','Spoon sauce over chicken and finish with parsley.']},
+  {name:'Tomato Basil Pasta', cuisine:'Italian', time:20, ingredients:['pasta','tomato','basil','garlic','olive oil','parmesan'],
+   steps:['Cook pasta; sauté garlic in olive oil.','Add chopped tomato and simmer until it breaks down.','Toss with pasta, basil and parmesan.']},
+
+  {name:'Chicken Tinga Tacos', cuisine:'Mexican', time:30, ingredients:['chicken','tomato','chili powder','onion','garlic','tortilla','lime'],
+   steps:['Simmer chicken with tomato, onion, garlic and chili powder.','Shred the chicken back into the sauce.','Serve in warm tortillas with a squeeze of lime.']},
+  {name:'Black Bean & Corn Tacos', cuisine:'Mexican', time:15, ingredients:['black beans','corn','tortilla','lime','avocado','onion'],
+   steps:['Warm black beans and corn with diced onion.','Mash avocado with lime for a quick crema.','Fill tortillas and top with avocado.']},
+  {name:'Paprika Lime Chicken Fajitas', cuisine:'Mexican', time:25, ingredients:['chicken','bell pepper','onion','paprika','lime','tortilla','cumin'],
+   steps:['Toss sliced chicken with paprika, cumin and lime.','Sear with bell pepper and onion until charred at the edges.','Serve in tortillas.']},
+
+  {name:'Ginger Garlic Butter Chicken', cuisine:'Indian', time:35, ingredients:['chicken','ginger','garlic','tomato','cream','garam masala','butter'],
+   steps:['Sear chicken; set aside.','Build a sauce from tomato, ginger, garlic, butter and garam masala.','Simmer chicken in the sauce, finish with cream.']},
+  {name:'Chana Masala', cuisine:'Indian', time:25, ingredients:['chickpeas','tomato','onion','ginger','garlic','cumin','garam masala'],
+   steps:['Sauté onion, ginger and garlic until golden.','Add tomato, cumin, garam masala and chickpeas.','Simmer until thickened.']},
+  {name:'Tandoori-Style Paprika Chicken', cuisine:'Indian', time:30, ingredients:['chicken','yogurt','paprika','ginger','garlic','lemon','cumin'],
+   steps:['Marinate chicken in yogurt, paprika, ginger, garlic, cumin and lemon.','Rest at least 20 minutes.','Roast or pan-sear until charred and cooked through.']},
+
+  {name:'Ginger Scallion Chicken', cuisine:'Chinese', time:20, ingredients:['chicken','ginger','scallion','soy sauce','sesame oil','rice'],
+   steps:['Poach or pan-sear chicken until just cooked.','Warm oil and pour over a pile of grated ginger and scallion.','Stir in soy sauce and sesame oil; serve over rice.']},
+  {name:'Kung Pao-Style Chicken', cuisine:'Chinese', time:25, ingredients:['chicken','peanut butter','chili pepper','scallion','soy sauce','garlic','ginger'],
+   steps:['Stir-fry chicken with garlic, ginger and chili pepper.','Add soy sauce loosened with a spoon of peanut butter.','Toss with scallion and serve.']},
+  {name:'Beef and Broccoli', cuisine:'Chinese', time:25, ingredients:['beef','broccoli','soy sauce','ginger','garlic','cornstarch'],
+   steps:['Toss sliced beef with cornstarch and sear hot and fast.','Add ginger, garlic and broccoli; stir-fry briefly.','Finish with soy sauce and a splash of water to glaze.']},
+
+  {name:'Chicken Teriyaki', cuisine:'Japanese', time:20, ingredients:['chicken','soy sauce','honey','ginger','garlic','rice'],
+   steps:['Pan-sear chicken skin-side down until golden.','Reduce soy sauce, honey, ginger and garlic into a glaze.','Coat the chicken and serve over rice.']},
+  {name:'Miso Salmon', cuisine:'Japanese', time:20, ingredients:['salmon','miso','honey','ginger','scallion'],
+   steps:['Whisk miso, honey and grated ginger.','Brush over salmon and broil until caramelized.','Top with sliced scallion.']},
+  {name:'Ginger Pork Stir Fry (Shogayaki)', cuisine:'Japanese', time:15, ingredients:['pork','ginger','soy sauce','onion','honey'],
+   steps:['Marinate thin pork slices in ginger, soy sauce and honey.','Sear pork with onion until caramelized.','Serve hot.']},
+
+  {name:'Basil Chicken (Pad Krapow)', cuisine:'Thai', time:20, ingredients:['chicken','basil','chili pepper','garlic','soy sauce','fish sauce'],
+   steps:['Stir-fry minced chicken with garlic and chili pepper.','Season with soy sauce and fish sauce.','Fold in basil off the heat until wilted.']},
+  {name:'Thai Peanut Noodles', cuisine:'Thai', time:15, ingredients:['noodles','peanut butter','soy sauce','lime','garlic','chili flakes'],
+   steps:['Cook noodles.','Whisk peanut butter, soy sauce, lime and garlic into a sauce.','Toss noodles in sauce with a pinch of chili flakes.']},
+  {name:'Coconut Curry Chicken', cuisine:'Thai', time:30, ingredients:['chicken','coconut milk','curry powder','ginger','garlic','lime'],
+   steps:['Bloom curry powder, ginger and garlic in a hot pan.','Add chicken and coconut milk; simmer until cooked through.','Finish with a squeeze of lime.']},
+
+  {name:'Gochujang Ginger Chicken', cuisine:'Korean', time:25, ingredients:['chicken','ginger','gochujang','soy sauce','garlic','honey'],
+   steps:['Whisk gochujang, ginger, garlic, soy sauce and honey.','Coat chicken and sear or roast until sticky.','Rest briefly before slicing.']},
+  {name:'Korean Beef Bulgogi', cuisine:'Korean', time:25, ingredients:['beef','soy sauce','ginger','garlic','honey','sesame oil'],
+   steps:['Marinate thin-sliced beef in soy sauce, ginger, garlic, honey and sesame oil.','Sear quickly over high heat.','Serve with rice.']},
+  {name:'Kimchi Fried Rice', cuisine:'Korean', time:15, ingredients:['rice','kimchi','scallion','egg','sesame oil'],
+   steps:['Fry chopped kimchi until edges caramelize.','Add day-old rice and sesame oil, tossing to coat.','Top with a fried egg and scallion.']},
+
+  {name:'Ginger Chicken Noodle Soup', cuisine:'Vietnamese', time:35, ingredients:['chicken','ginger','stock','rice noodles','scallion','lime'],
+   steps:['Simmer chicken in stock with ginger until cooked.','Shred chicken; cook rice noodles separately.','Assemble bowls with broth, noodles, scallion and lime.']},
+  {name:'Vietnamese Caramel Ginger Pork', cuisine:'Vietnamese', time:35, ingredients:['pork','ginger','fish sauce','sugar','garlic'],
+   steps:['Caramelize sugar until deep amber.','Add pork, ginger, garlic and fish sauce; simmer.','Reduce until glossy and sticky.']},
+  {name:'Lemongrass Chicken', cuisine:'Vietnamese', time:25, ingredients:['chicken','lemongrass','garlic','fish sauce','lime','chili pepper'],
+   steps:['Marinate chicken in minced lemongrass, garlic, fish sauce and chili pepper.','Sear until charred at the edges.','Finish with lime.']},
+
+  {name:'Greek Lemon Paprika Chicken', cuisine:'Mediterranean', time:30, ingredients:['chicken','lemon','oregano','paprika','garlic','olive oil'],
+   steps:['Marinate chicken in lemon, oregano, paprika, garlic and olive oil.','Roast or pan-sear until golden.','Rest before slicing.']},
+  {name:'Greek Salad', cuisine:'Mediterranean', time:10, ingredients:['cucumber','tomato','feta','onion','olive oil','oregano'],
+   steps:['Chop cucumber, tomato and onion.','Toss with olive oil and oregano.','Top generously with feta.']},
+  {name:'Chickpea & Spinach Stew', cuisine:'Mediterranean', time:25, ingredients:['chickpeas','spinach','tomato','cumin','paprika','garlic'],
+   steps:['Sauté garlic with cumin and paprika.','Add tomato and chickpeas; simmer.','Stir in spinach until wilted.']},
+
+  {name:'Paprika Chicken Shawarma', cuisine:'Middle Eastern', time:30, ingredients:['chicken','paprika','cumin','garlic','yogurt','lemon'],
+   steps:['Marinate chicken in yogurt, paprika, cumin, garlic and lemon.','Sear or roast until charred.','Slice thin and serve.']},
+  {name:'Harissa Chickpeas', cuisine:'Middle Eastern', time:20, ingredients:['chickpeas','harissa','tomato','cumin','garlic'],
+   steps:['Sauté garlic and cumin.','Add tomato, harissa and chickpeas.','Simmer until thick.']},
+  {name:'Tahini Roasted Vegetables', cuisine:'Middle Eastern', time:30, ingredients:['zucchini','tahini','lemon','garlic','cumin'],
+   steps:['Roast zucchini with cumin until golden.','Whisk tahini, lemon and garlic into a sauce.','Drizzle over the roasted vegetables.']},
+
+  {name:'Chicken with Mustard Cream Sauce', cuisine:'French', time:30, ingredients:['chicken','mustard','cream','butter','thyme','garlic'],
+   steps:['Sear chicken in butter; set aside.','Build a sauce with garlic, mustard, thyme and cream.','Return chicken to the pan to finish.']},
+  {name:'Ratatouille', cuisine:'French', time:40, ingredients:['zucchini','tomato','bell pepper','onion','garlic','thyme'],
+   steps:['Sauté onion and garlic.','Add zucchini, bell pepper and tomato with thyme.','Simmer low until vegetables are silky.']},
+  {name:'Herb Butter Salmon', cuisine:'French', time:20, ingredients:['salmon','butter','thyme','lemon','garlic'],
+   steps:['Sear salmon skin-side down.','Baste with butter, thyme and garlic.','Finish with lemon.']},
+
+  {name:'Paprika Roasted Chicken', cuisine:'American', time:45, ingredients:['chicken','paprika','butter','garlic','thyme','lemon'],
+   steps:['Rub chicken with butter, paprika, garlic and thyme.','Roast until deeply golden.','Rest, then finish with lemon.']},
+  {name:'Smoky Paprika Chili', cuisine:'American', time:35, ingredients:['ground beef','black beans','tomato','paprika','cumin','onion'],
+   steps:['Brown ground beef with onion.','Add tomato, black beans, paprika and cumin.','Simmer until thick.']},
+  {name:'Cajun Shrimp', cuisine:'American', time:15, ingredients:['shrimp','paprika','cayenne pepper','garlic','butter','lemon'],
+   steps:['Toss shrimp with paprika, cayenne and garlic.','Sear hot in butter until just pink.','Finish with lemon.']},
+];
+
+/* ---------------- State ---------------- */
+let selected = new Set();
+let viewMode = 'diverse';
+let searchTerm = '';
+// Tracks which categories the user has opened, so picking an ingredient
+// never collapses the dropdown out from under them.
+let openCategories = new Set([CATEGORIES[0].name]);
+
+/* ---------------- Render shelf ---------------- */
+const shelfEl = document.getElementById('shelf');
+
+function renderShelf(){
+  shelfEl.innerHTML = '';
+  CATEGORIES.forEach((cat) => {
+    const items = cat.items.filter(i => i.includes(searchTerm.toLowerCase()));
+    if (searchTerm && items.length === 0) return;
+
+    const isOpen = searchTerm ? true : openCategories.has(cat.name);
+
+    const catEl = document.createElement('div');
+    catEl.className = 'category' + (isOpen ? ' open' : '');
+
+    const selCount = cat.items.filter(i => selected.has(i)).length;
+
+    catEl.innerHTML = `
+      <div class="category-head">
+        <h3>${cat.name}</h3>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="count">${selCount ? selCount + ' selected' : ''}</span>
+          <span class="caret">▶</span>
+        </div>
+      </div>
+      <div class="category-body"></div>
+    `;
+    const body = catEl.querySelector('.category-body');
+    items.forEach(ing => {
+      const chip = document.createElement('button');
+      chip.className = 'ing-chip' + (selected.has(ing) ? ' on' : '');
+      chip.textContent = ing;
+      // Keep the dropdown open on pick — only re-render shelf state, don't collapse it.
+      chip.onclick = () => { toggleIngredient(ing, cat.name); };
+      body.appendChild(chip);
+    });
+    catEl.querySelector('.category-head').onclick = () => {
+      if (openCategories.has(cat.name)) openCategories.delete(cat.name);
+      else openCategories.add(cat.name);
+      renderShelf();
+    };
+    shelfEl.appendChild(catEl);
+  });
+}
+
+function toggleIngredient(ing, catName){
+  if (selected.has(ing)) selected.delete(ing); else selected.add(ing);
+  // Make sure the category stays open after a pick.
+  if (catName) openCategories.add(catName);
+  renderShelf();
+  renderTray();
+  renderResults();
+}
+
+function ingredientCategory(ing){
+  const cat = CATEGORIES.find(c => c.items.includes(ing));
+  return cat ? cat.name : '';
+}
+
+/* ---------------- Render tray ---------------- */
+const trayEl = document.getElementById('tray');
+function renderTray(){
+  trayEl.innerHTML = '<span class="tray-label">On hand</span>';
+  if (selected.size === 0){
+    const span = document.createElement('span');
+    span.className = 'tray-empty';
+    span.textContent = "Nothing selected yet — tap ingredients below.";
+    trayEl.appendChild(span);
+    return;
+  }
+  selected.forEach(ing => {
+    const chip = document.createElement('span');
+    chip.className = 'chip-selected';
+    chip.innerHTML = `${ing} <button aria-label="remove">×</button>`;
+    chip.querySelector('button').onclick = () => toggleIngredient(ing);
+    trayEl.appendChild(chip);
+  });
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'clear-all';
+  clearBtn.textContent = 'Clear all';
+  clearBtn.onclick = () => { selected.clear(); renderShelf(); renderTray(); renderResults(); };
+  trayEl.appendChild(clearBtn);
+}
+
+/* ---------------- Scoring ---------------- */
+function scoreRecipe(recipe){
+  const core = recipe.ingredients.filter(i => !STAPLES.has(i));
+  const matched = recipe.ingredients.filter(i => selected.has(i) && !STAPLES.has(i));
+  const missing = core.filter(i => !selected.has(i));
+  const score = core.length ? matched.length / core.length : 0;
+  return { matched, missing, score, core };
+}
+
+function dialSvg(pct, id){
+  const r = 24, c = 2*Math.PI*r;
+  const offset = c - (pct/100)*c;
+  const color = pct >= 75 ? 'var(--sage-deep)' : pct >= 40 ? 'var(--turmeric-deep)' : 'var(--paprika-deep)';
+  return `
+    <div class="dial">
+      <svg width="58" height="58" viewBox="0 0 58 58">
+        <circle class="track" cx="29" cy="29" r="${r}"></circle>
+        <circle class="fill" cx="29" cy="29" r="${r}" stroke="${color}"
+          stroke-dasharray="${c}" stroke-dashoffset="${offset}"></circle>
+      </svg>
+      <div class="pct">${pct}%</div>
+    </div>`;
+}
+
+function recipeCard(recipe){
+  const { matched, score } = scoreRecipe(recipe);
+  const pct = Math.round(score*100);
+  return `
+    <div class="rcard">
+      <div class="rcard-top">
+        <div class="rcard-title-block">
+          <div class="eyebrow">${recipe.cuisine}</div>
+          <h3>${recipe.name}</h3>
+          <div class="meta">${recipe.time} min · easy</div>
+        </div>
+        ${dialSvg(pct)}
+      </div>
+      <div class="ing-lists">
+        <div class="ing-row">
+          <span class="label">Uses</span>
+          ${matched.length ? matched.map(i=>`<span class="tag have">${i}</span>`).join('') : '<span class="meta">—</span>'}
+        </div>
+      </div>
+      <details class="steps">
+        <summary>Method</summary>
+        <ol>${recipe.steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+      </details>
+    </div>
+  `;
+}
+
+/* ---------------- Results ---------------- */
+const resultsArea = document.getElementById('resultsArea');
+const resultsTitle = document.getElementById('resultsTitle');
+const resultsSub = document.getElementById('resultsSub');
+
+function renderResults(){
+  if (selected.size === 0){
+    resultsTitle.textContent = 'Your shelf is empty';
+    resultsSub.textContent = 'Select ingredients above to see what you can cook';
+    resultsArea.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🍲</div>
+        <h3>Nothing to cook with yet</h3>
+        <p>Tap a few ingredients above — even just three or four — and recipes from across the world's cuisines will show up here, ranked by how close you are to cooking them.</p>
+      </div>`;
+    return;
+  }
+
+  let scored = RECIPES.map(r => ({ recipe: r, ...scoreRecipe(r) }))
+    .filter(r => r.score >= 0.5)
+    .sort((a,b) => b.score - a.score || b.matched.length - a.matched.length);
+
+  if (scored.length === 0){
+    resultsTitle.textContent = 'No 50%+ matches yet';
+    resultsSub.textContent = `${selected.size} ingredient${selected.size>1?'s':''} selected`;
+    resultsArea.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🤔</div>
+        <h3>Not quite enough overlap</h3>
+        <p>Nothing hits at least half of a recipe's ingredients yet. Add a few more things you have on hand — common ones like garlic, onion, or ginger tend to unlock the most.</p>
+      </div>`;
+    return;
+  }
+
+  let display = scored;
+  if (viewMode === 'diverse'){
+    const seen = new Set();
+    display = [];
+    scored.forEach(s => {
+      if (!seen.has(s.recipe.cuisine)){
+        seen.add(s.recipe.cuisine);
+        display.push(s);
+      }
+    });
+  }
+
+  const cuisineCount = new Set(scored.map(s=>s.recipe.cuisine)).size;
+  resultsTitle.textContent = `${display.length} recipe${display.length>1?'s':''} to try`;
+  resultsSub.textContent = `${scored.length} total matches across ${cuisineCount} cuisine${cuisineCount>1?'s':''} · ${selected.size} ingredient${selected.size>1?'s':''} on hand`;
+
+  resultsArea.innerHTML = `<div class="grid">${display.map(s => recipeCard(s.recipe)).join('')}</div>`;
+}
+
+/* ---------------- Search ---------------- */
+const searchBoxEl = document.getElementById('searchBox');
+const suggestBoxEl = document.getElementById('suggestBox');
+const ALL_INGREDIENTS = CATEGORIES.flatMap(c => c.items);
+
+function renderSuggestions(term){
+  if (!term){
+    suggestBoxEl.style.display = 'none';
+    suggestBoxEl.innerHTML = '';
+    return;
+  }
+  const matches = ALL_INGREDIENTS.filter(i => i.includes(term.toLowerCase())).slice(0, 12);
+  if (matches.length === 0){
+    suggestBoxEl.innerHTML = `<div class="suggest-empty">No ingredient matches "${term}"</div>`;
+    suggestBoxEl.style.display = 'block';
+    return;
+  }
+  suggestBoxEl.innerHTML = matches.map(ing => {
+    const already = selected.has(ing);
+    return `<div class="suggest-item${already ? ' already' : ''}" data-ing="${ing}">
+      <span>${ing}</span>
+      <span class="cat-tag">${already ? 'on shelf ✓' : ingredientCategory(ing)}</span>
+    </div>`;
+  }).join('');
+  suggestBoxEl.style.display = 'block';
+  suggestBoxEl.querySelectorAll('.suggest-item').forEach(el => {
+    el.onclick = () => {
+      const ing = el.dataset.ing;
+      const catName = ingredientCategory(ing);
+      if (!selected.has(ing)) toggleIngredient(ing, catName);
+      searchBoxEl.value = '';
+      searchTerm = '';
+      renderShelf();
+      renderSuggestions('');
+      searchBoxEl.focus();
+    };
+  });
+}
+
+searchBoxEl.addEventListener('input', (e) => {
+  searchTerm = e.target.value.trim();
+  renderShelf();
+  renderSuggestions(searchTerm);
+});
+
+searchBoxEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    const term = searchBoxEl.value.trim().toLowerCase();
+    if (!term) return;
+    const firstMatch = ALL_INGREDIENTS.find(i => i.includes(term));
+    if (firstMatch){
+      toggleIngredient(firstMatch, ingredientCategory(firstMatch));
+      searchBoxEl.value = '';
+      searchTerm = '';
+      renderShelf();
+      renderSuggestions('');
+    }
+  }
+  if (e.key === 'Escape'){
+    searchBoxEl.value = '';
+    searchTerm = '';
+    renderShelf();
+    renderSuggestions('');
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-row')) renderSuggestions('');
+});
+
+/* ---------------- View toggle ---------------- */
+document.getElementById('viewToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  viewMode = btn.dataset.mode;
+  document.querySelectorAll('#viewToggle button').forEach(b => b.classList.toggle('active', b===btn));
+  renderResults();
+});
+
+/* ---------------- PWA install ---------------- */
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+/* ---------------- Init ---------------- */
+renderShelf();
+renderTray();
+renderResults();
+</script>
+</body>
+</html>
