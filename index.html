@@ -306,6 +306,48 @@
     .tagline{text-align:left; max-width:none;}
     header.top{flex-direction:column; align-items:flex-start;}
   }
+
+  /* ---------- Ask box (natural language) ---------- */
+  .ask-row{margin-bottom:20px;}
+  .ask-shell{
+    display:flex; gap:10px; align-items:stretch;
+  }
+  .ask-box{
+    flex:1; background:var(--bg-2); border:1px solid var(--turmeric); border-radius:12px;
+    padding:14px 16px; color:var(--cream); font-family:'Inter',sans-serif; font-size:0.98rem;
+    outline:none;
+  }
+  .ask-box::placeholder{color:var(--cream-dim);}
+  .ask-btn{
+    background:var(--turmeric); color:#241a0d; border:none; border-radius:12px;
+    padding:0 22px; font-family:'IBM Plex Mono', monospace; font-size:0.78rem;
+    text-transform:uppercase; letter-spacing:0.05em; font-weight:600; cursor:pointer;
+    white-space:nowrap;
+  }
+  .ask-btn:hover{background:var(--turmeric-deep);}
+  .ask-hint{
+    font-family:'IBM Plex Mono', monospace; font-size:0.7rem; color:var(--cream-dim);
+    margin-top:8px;
+  }
+  .ask-feedback{
+    font-family:'IBM Plex Mono', monospace; font-size:0.76rem; color:var(--sage);
+    margin-top:8px; min-height:16px;
+  }
+  .ask-feedback.empty{color:var(--paprika);}
+  .or-divider{
+    display:flex; align-items:center; gap:12px; margin:22px 0;
+    color:var(--cream-dim); font-family:'IBM Plex Mono', monospace; font-size:0.72rem;
+    text-transform:uppercase; letter-spacing:0.08em;
+  }
+  .or-divider::before, .or-divider::after{
+    content:""; flex:1; height:1px; background:var(--line);
+  }
+
+  .simple-badge{
+    display:inline-block; background:rgba(111,143,94,0.18); color:var(--sage-deep);
+    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; text-transform:uppercase;
+    letter-spacing:0.05em; padding:2px 8px; border-radius:6px; margin-top:6px; font-weight:600;
+  }
 </style>
 </head>
 <body>
@@ -320,6 +362,17 @@
     <span class="tray-label">On hand</span>
     <span class="tray-empty" id="trayEmpty">Nothing selected yet — tap ingredients below.</span>
   </div>
+
+  <div class="ask-row">
+    <div class="ask-shell">
+      <input class="ask-box" id="askBox" type="text" autocomplete="off"
+        placeholder='Or just tell me what you want — "simple recipe with tomato, rice, and chicken or fish"'>
+      <button class="ask-btn" id="askBtn">Find</button>
+    </div>
+    <div class="ask-feedback" id="askFeedback"></div>
+  </div>
+
+  <div class="or-divider">or pick from your shelf</div>
 
   <div class="search-row">
     <input class="search-box" id="searchBox" type="text" autocomplete="off" placeholder="Search and add an ingredient — chicken, ginger, paprika…">
@@ -353,7 +406,7 @@
 const STAPLES = new Set(['salt','olive oil','black pepper','vegetable oil']);
 
 const CATEGORIES = [
-  { name: 'Proteins & Legumes', items: ['chicken','shrimp','salmon','pork','beef','lamb','duck','ground beef','ground turkey','italian sausage','chickpeas','black beans','cannellini beans','navy beans','lentils','tofu','egg','tuna','anchovy','crab','scallops'] },
+  { name: 'Proteins & Legumes', items: ['chicken','shrimp','salmon','fish','pork','beef','lamb','duck','ground beef','ground turkey','italian sausage','chickpeas','black beans','cannellini beans','navy beans','lentils','tofu','egg','tuna','anchovy','crab','scallops'] },
   { name: 'Produce & Aromatics', items: ['garlic','ginger','onion','shallot','leek','scallion','tomato','lemon','lime','bell pepper','jalapeno','serrano pepper','poblano pepper','zucchini','spinach','cucumber','chili pepper','corn','avocado','kimchi','broccoli','mushroom','eggplant','okra','cabbage','apple','banana','mango','pineapple','pomegranate','celery','carrot','cauliflower','kale','swiss chard','romaine lettuce','mixed greens','sweet potato','potato','green beans','asparagus'] },
   { name: 'Herbs', items: ['basil','parsley','cilantro','mint','curry leaves','thyme','oregano','rosemary','bay leaf','dill','tarragon','chives','sage','marjoram','lemongrass'] },
   { name: 'Spices & Seasoning', items: ['paprika','smoked paprika','cumin','coriander seed','garam masala','curry powder','cayenne pepper','chili powder','chili flakes','black pepper','white pepper','salt','turmeric','cinnamon','nutmeg','clove','cardamom','allspice','fennel seed','dill seed','mustard seed','fenugreek','asafoetida','saffron','star anise','five spice','sumac','za\'atar','garlic powder','onion powder','ginger powder','ras el hanout','berbere','old bay','italian seasoning','herbes de provence','sesame seeds'] },
@@ -452,12 +505,17 @@ const RECIPES = [
    steps:['Brown ground beef with onion.','Add tomato, black beans, paprika and cumin.','Simmer until thick.']},
   {name:'Cajun Shrimp', cuisine:'American', time:15, ingredients:['shrimp','paprika','cayenne pepper','garlic','butter','lemon'],
    steps:['Toss shrimp with paprika, cayenne and garlic.','Sear hot in butter until just pink.','Finish with lemon.']},
+  {name:'One-Pot Chicken Tomato Rice', cuisine:'American', time:35, ingredients:['chicken','rice','tomato','onion','garlic','paprika'],
+   steps:['Sear chicken with paprika until golden; set aside.','Sauté onion and garlic, add tomato and rice, stir to coat.','Return chicken to the pot, add water or stock, cover and simmer until the rice is tender.']},
+  {name:'Spanish Fish and Tomato Rice', cuisine:'Mediterranean', time:35, ingredients:['fish','rice','tomato','garlic','onion','paprika','lemon'],
+   steps:['Sauté onion and garlic, add tomato and smoked paprika.','Stir in rice and enough water or stock to cook it through, simmering uncovered.','Nestle fish fillets on top for the last few minutes until just cooked, finish with lemon.']},
 ];
 
 /* ---------------- State ---------------- */
 let selected = new Set();
 let viewMode = 'diverse';
 let searchTerm = '';
+let preferSimpleMode = false;
 // Tracks which categories the user has opened, so picking an ingredient
 // never collapses the dropdown out from under them.
 let openCategories = new Set([CATEGORIES[0].name]);
@@ -541,7 +599,7 @@ function renderTray(){
   const clearBtn = document.createElement('button');
   clearBtn.className = 'clear-all';
   clearBtn.textContent = 'Clear all';
-  clearBtn.onclick = () => { selected.clear(); renderShelf(); renderTray(); renderResults(); };
+  clearBtn.onclick = () => { selected.clear(); preferSimpleMode = false; renderShelf(); renderTray(); renderResults(); };
   trayEl.appendChild(clearBtn);
 }
 
@@ -552,6 +610,10 @@ function scoreRecipe(recipe){
   const missing = core.filter(i => !selected.has(i));
   const score = core.length ? matched.length / core.length : 0;
   return { matched, missing, score, core };
+}
+
+function isSimpleRecipe(recipe, core){
+  return core.length <= 7 && recipe.time <= 35;
 }
 
 // Known swaps for common missing ingredients — pantry-style substitutions
@@ -628,8 +690,9 @@ function dialSvg(pct, id){
 }
 
 function recipeCard(recipe){
-  const { matched, missing, score } = scoreRecipe(recipe);
+  const { matched, missing, score, core } = scoreRecipe(recipe);
   const pct = Math.round(score*100);
+  const isSimple = isSimpleRecipe(recipe, core);
   return `
     <div class="rcard">
       <div class="rcard-top">
@@ -637,6 +700,7 @@ function recipeCard(recipe){
           <div class="eyebrow">${recipe.cuisine}</div>
           <h3>${recipe.name}</h3>
           <div class="meta">${recipe.time} min · easy · ${matched.length}/${matched.length + missing.length} ingredients on hand</div>
+          ${isSimple ? '<div class="simple-badge">Simple &amp; quick</div>' : ''}
         </div>
         ${dialSvg(pct)}
       </div>
@@ -675,14 +739,21 @@ function renderResults(){
       <div class="empty-state">
         <div class="icon">🍲</div>
         <h3>Nothing to cook with yet</h3>
-        <p>Tap a few ingredients above — even just three or four — and recipes from across the world's cuisines will show up here, ranked by how close you are to making them, with swap ideas for anything you're missing.</p>
+        <p>Type what you're craving above, or tap ingredients below — either way, recipes from across the world's cuisines will show up here, ranked by how close you are to making them, with swap ideas for anything you're missing.</p>
       </div>`;
     return;
   }
 
   let scored = RECIPES.map(r => ({ recipe: r, ...scoreRecipe(r) }))
     .filter(r => r.matched.length > 0)
-    .sort((a,b) => b.score - a.score || b.matched.length - a.matched.length);
+    .sort((a,b) => {
+      if (preferSimpleMode){
+        const aSimple = isSimpleRecipe(a.recipe, a.core) ? 0 : 1;
+        const bSimple = isSimpleRecipe(b.recipe, b.core) ? 0 : 1;
+        if (aSimple !== bSimple) return aSimple - bSimple;
+      }
+      return b.score - a.score || b.matched.length - a.matched.length;
+    });
 
   if (scored.length === 0){
     resultsTitle.textContent = 'No matches yet';
@@ -710,7 +781,7 @@ function renderResults(){
 
   const cuisineCount = new Set(scored.map(s=>s.recipe.cuisine)).size;
   resultsTitle.textContent = `${display.length} recipe${display.length>1?'s':''} to try`;
-  resultsSub.textContent = `${scored.length} total matches across ${cuisineCount} cuisine${cuisineCount>1?'s':''} · ${selected.size} ingredient${selected.size>1?'s':''} on hand`;
+  resultsSub.textContent = `${scored.length} total matches across ${cuisineCount} cuisine${cuisineCount>1?'s':''} · ${selected.size} ingredient${selected.size>1?'s':''} on hand${preferSimpleMode ? ' · sorted for simplicity' : ''}`;
 
   resultsArea.innerHTML = `<div class="grid">${display.map(s => recipeCard(s.recipe)).join('')}</div>`;
 }
@@ -719,6 +790,61 @@ function renderResults(){
 const searchBoxEl = document.getElementById('searchBox');
 const suggestBoxEl = document.getElementById('suggestBox');
 const ALL_INGREDIENTS = CATEGORIES.flatMap(c => c.items);
+
+/* ---------------- Ask box (natural language) ---------------- */
+const askBoxEl = document.getElementById('askBox');
+const askBtnEl = document.getElementById('askBtn');
+const askFeedbackEl = document.getElementById('askFeedback');
+
+const SIMPLE_WORDS = ['simple','easy','quick','fast','basic','minute'];
+// Longest ingredient names first, so "bell pepper" is caught before a bare "pepper"-style partial.
+const INGREDIENTS_BY_LENGTH = [...ALL_INGREDIENTS].sort((a,b) => b.length - a.length);
+
+function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function parseAskInput(text){
+  const lower = text.toLowerCase();
+  const preferSimple = SIMPLE_WORDS.some(w => lower.includes(w));
+  const found = [];
+  INGREDIENTS_BY_LENGTH.forEach(ing => {
+    const re = new RegExp('\\b' + escapeRegex(ing) + '\\b', 'i');
+    if (re.test(lower)) found.push(ing);
+  });
+  return { found, preferSimple };
+}
+
+function handleAskInput(){
+  const text = askBoxEl.value.trim();
+  if (!text) return;
+  const { found, preferSimple } = parseAskInput(text);
+  preferSimpleMode = preferSimple;
+
+  if (found.length === 0){
+    askFeedbackEl.textContent = `Didn't catch specific ingredients in that — try naming them directly, e.g. "tomato, rice, chicken."`;
+    askFeedbackEl.classList.add('empty');
+    return;
+  }
+  askFeedbackEl.classList.remove('empty');
+
+  found.forEach(ing => {
+    selected.add(ing);
+    const cat = ingredientCategory(ing);
+    if (cat) openCategories.add(cat);
+  });
+
+  askFeedbackEl.textContent = `Added: ${found.join(', ')}${preferSimple ? ' · prioritizing simple, quick recipes' : ''}`;
+  renderShelf();
+  renderTray();
+  renderResults();
+}
+
+askBtnEl.addEventListener('click', handleAskInput);
+askBoxEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    handleAskInput();
+  }
+});
 
 function renderSuggestions(term){
   if (!term){
