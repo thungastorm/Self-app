@@ -330,23 +330,27 @@
   <div id="resultsArea"></div>
 
   <footer class="note">
-    Only recipes that are at least a 50% match to your shelf are shown. Match % is based on core ingredients — salt, olive oil, and black pepper are treated as pantry staples you already have, so they never count against a recipe.
+    SHELF only ever suggests recipes you can make completely with what you've selected — nothing is ever recommended with a missing ingredient. Salt, olive oil, vegetable oil, and black pepper are treated as pantry staples you already have, so they don't count against a recipe.
   </footer>
 
 </div>
 
 <script>
 /* ---------------- Data ---------------- */
-const STAPLES = new Set(['salt','olive oil','black pepper']);
+const STAPLES = new Set(['salt','olive oil','black pepper','vegetable oil']);
 
 const CATEGORIES = [
-  { name: 'Proteins & Legumes', items: ['chicken','shrimp','salmon','pork','beef','ground beef','chickpeas','black beans','egg'] },
-  { name: 'Produce & Aromatics', items: ['garlic','ginger','onion','scallion','tomato','lemon','lime','bell pepper','zucchini','spinach','cucumber','chili pepper','corn','avocado','kimchi','broccoli'] },
-  { name: 'Herbs', items: ['basil','parsley','thyme','oregano','lemongrass'] },
-  { name: 'Spices & Seasoning', items: ['paprika','smoked paprika','cumin','coriander seed','garam masala','curry powder','cayenne pepper','chili powder','chili flakes','black pepper','white pepper','salt','turmeric','cinnamon','nutmeg','clove','cardamom','allspice','fennel seed','mustard seed','fenugreek','saffron','star anise','five spice','sumac','za\'atar','garlic powder','onion powder','ginger powder','ras el hanout','berbere','old bay','italian seasoning','herbes de provence'] },
-  { name: 'Dairy', items: ['butter','cream','yogurt','feta','parmesan'] },
-  { name: 'Grains & Starches', items: ['rice','pasta','tortilla','rice noodles','noodles','flour'] },
-  { name: 'Pantry & Sauces', items: ['soy sauce','sesame oil','honey','fish sauce','gochujang','miso','harissa','tahini','mustard','coconut milk','olive oil','cornstarch','sugar','capers','peanut butter','stock'] },
+  { name: 'Proteins & Legumes', items: ['chicken','shrimp','salmon','pork','beef','ground beef','ground turkey','italian sausage','chickpeas','black beans','cannellini beans','navy beans','egg','tuna','anchovy'] },
+  { name: 'Produce & Aromatics', items: ['garlic','ginger','onion','scallion','tomato','lemon','lime','bell pepper','zucchini','spinach','cucumber','chili pepper','corn','avocado','kimchi','broccoli','apple','banana','celery','cauliflower','kale','swiss chard','romaine lettuce','mixed greens','sweet potato','potato','green beans'] },
+  { name: 'Herbs', items: ['basil','parsley','thyme','oregano','lemongrass','rosemary','bay leaf','dill'] },
+  { name: 'Spices & Seasoning', items: ['paprika','smoked paprika','cumin','coriander seed','garam masala','curry powder','cayenne pepper','chili powder','chili flakes','black pepper','white pepper','salt','turmeric','cinnamon','nutmeg','clove','cardamom','allspice','fennel seed','dill seed','mustard seed','fenugreek','saffron','star anise','five spice','sumac','za\'atar','garlic powder','onion powder','ginger powder','ras el hanout','berbere','old bay','italian seasoning','herbes de provence','sesame seeds'] },
+  { name: 'Dairy & Eggs', items: ['butter','cream','yogurt','feta','parmesan','milk','cheddar','mozzarella','goat cheese','evaporated milk'] },
+  { name: 'Grains & Starches', items: ['rice','pasta','tortilla','rice noodles','noodles','flour','brown rice','bulgur','farro','couscous','polenta','breadcrumbs','panko','egg noodles','bread','baguette'] },
+  { name: 'Pantry & Condiments', items: ['soy sauce','sesame oil','honey','fish sauce','gochujang','miso','harissa','tahini','mustard','coconut milk','olive oil','cornstarch','sugar','capers','peanut butter','stock','vegetable oil','apple cider vinegar','red wine vinegar','balsamic vinegar','rice vinegar','ketchup','mayonnaise','worcestershire sauce','tamari','hot sauce','sriracha','jelly','pickles','tomato paste'] },
+  { name: 'Canned & Jarred Goods', items: ['chicken broth','hominy','olives','chipotle in adobo','pickled jalapenos','salsa','roasted red peppers'] },
+  { name: 'Baking & Sweeteners', items: ['baking soda','baking powder','cream of tartar','cocoa powder','chocolate chips','vanilla extract','confectioners sugar','brown sugar','maple syrup','agave syrup','coffee','tea'] },
+  { name: 'Snacks & Cereal', items: ['crackers','pretzels','marshmallows','popcorn kernels','raisins','dried apricots','sunflower seeds','flax seeds','chia seeds','applesauce','cereal','rolled oats'] },
+  { name: 'Freezer', items: ['bacon','frozen peas','frozen corn','frozen berries','frozen peaches','frozen mango','almonds','walnuts','pecans','pizza dough','puff pastry','vanilla ice cream'] },
 ];
 
 const RECIPES = [
@@ -590,23 +594,23 @@ function renderResults(){
       <div class="empty-state">
         <div class="icon">🍲</div>
         <h3>Nothing to cook with yet</h3>
-        <p>Tap a few ingredients above — even just three or four — and recipes from across the world's cuisines will show up here, ranked by how close you are to cooking them.</p>
+        <p>Tap a few ingredients above — even just three or four — and recipes you can fully make right now, from across the world's cuisines, will show up here.</p>
       </div>`;
     return;
   }
 
   let scored = RECIPES.map(r => ({ recipe: r, ...scoreRecipe(r) }))
-    .filter(r => r.score >= 0.5)
-    .sort((a,b) => b.score - a.score || b.matched.length - a.matched.length);
+    .filter(r => r.score === 1)
+    .sort((a,b) => b.matched.length - a.matched.length);
 
   if (scored.length === 0){
-    resultsTitle.textContent = 'No 50%+ matches yet';
+    resultsTitle.textContent = 'Nothing fully makeable yet';
     resultsSub.textContent = `${selected.size} ingredient${selected.size>1?'s':''} selected`;
     resultsArea.innerHTML = `
       <div class="empty-state">
         <div class="icon">🤔</div>
-        <h3>Not quite enough overlap</h3>
-        <p>Nothing hits at least half of a recipe's ingredients yet. Add a few more things you have on hand — common ones like garlic, onion, or ginger tend to unlock the most.</p>
+        <h3>Not quite there yet</h3>
+        <p>Nothing on the shelf right now can be made 100% with what you've selected. Add a few more things you actually have — common ones like garlic, onion, or ginger tend to unlock the most recipes.</p>
       </div>`;
     return;
   }
