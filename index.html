@@ -273,6 +273,19 @@
   .tag.have{background:rgba(111,143,94,0.18); color:var(--sage-deep);}
   .tag.need{background:rgba(189,74,44,0.14); color:var(--paprika-deep);}
 
+  .swap-list{
+    list-style:none; margin:2px 0 0; padding:0;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .swap-list li{
+    font-size:0.78rem; line-height:1.4; color:var(--ink-soft);
+    padding-left:14px; position:relative;
+  }
+  .swap-list li::before{
+    content:"↳"; position:absolute; left:0; color:var(--sage-deep);
+  }
+  .swap-list strong{color:var(--ink); font-weight:600;}
+
   .steps{
     border-top:1px solid rgba(42,32,24,0.1); padding-top:12px; margin-top:2px;
   }
@@ -330,7 +343,7 @@
   <div id="resultsArea"></div>
 
   <footer class="note">
-    SHELF only ever suggests recipes you can make completely with what you've selected — nothing is ever recommended with a missing ingredient. Salt, olive oil, vegetable oil, and black pepper are treated as pantry staples you already have, so they don't count against a recipe.
+    Recipes are ranked by how much of the ingredient list you already have — nothing is filtered out for being incomplete. Anything you're missing comes with a quick swap idea, so a recipe calling for 20 ingredients is still worth trying with 14. Salt, olive oil, vegetable oil, and black pepper are treated as pantry staples you already have, so they don't count against a recipe.
   </footer>
 
 </div>
@@ -340,13 +353,13 @@
 const STAPLES = new Set(['salt','olive oil','black pepper','vegetable oil']);
 
 const CATEGORIES = [
-  { name: 'Proteins & Legumes', items: ['chicken','shrimp','salmon','pork','beef','ground beef','ground turkey','italian sausage','chickpeas','black beans','cannellini beans','navy beans','egg','tuna','anchovy'] },
-  { name: 'Produce & Aromatics', items: ['garlic','ginger','onion','scallion','tomato','lemon','lime','bell pepper','zucchini','spinach','cucumber','chili pepper','corn','avocado','kimchi','broccoli','apple','banana','celery','cauliflower','kale','swiss chard','romaine lettuce','mixed greens','sweet potato','potato','green beans'] },
-  { name: 'Herbs', items: ['basil','parsley','thyme','oregano','lemongrass','rosemary','bay leaf','dill'] },
-  { name: 'Spices & Seasoning', items: ['paprika','smoked paprika','cumin','coriander seed','garam masala','curry powder','cayenne pepper','chili powder','chili flakes','black pepper','white pepper','salt','turmeric','cinnamon','nutmeg','clove','cardamom','allspice','fennel seed','dill seed','mustard seed','fenugreek','saffron','star anise','five spice','sumac','za\'atar','garlic powder','onion powder','ginger powder','ras el hanout','berbere','old bay','italian seasoning','herbes de provence','sesame seeds'] },
-  { name: 'Dairy & Eggs', items: ['butter','cream','yogurt','feta','parmesan','milk','cheddar','mozzarella','goat cheese','evaporated milk'] },
-  { name: 'Grains & Starches', items: ['rice','pasta','tortilla','rice noodles','noodles','flour','brown rice','bulgur','farro','couscous','polenta','breadcrumbs','panko','egg noodles','bread','baguette'] },
-  { name: 'Pantry & Condiments', items: ['soy sauce','sesame oil','honey','fish sauce','gochujang','miso','harissa','tahini','mustard','coconut milk','olive oil','cornstarch','sugar','capers','peanut butter','stock','vegetable oil','apple cider vinegar','red wine vinegar','balsamic vinegar','rice vinegar','ketchup','mayonnaise','worcestershire sauce','tamari','hot sauce','sriracha','jelly','pickles','tomato paste'] },
+  { name: 'Proteins & Legumes', items: ['chicken','shrimp','salmon','pork','beef','lamb','duck','ground beef','ground turkey','italian sausage','chickpeas','black beans','cannellini beans','navy beans','lentils','tofu','egg','tuna','anchovy','crab','scallops'] },
+  { name: 'Produce & Aromatics', items: ['garlic','ginger','onion','shallot','leek','scallion','tomato','lemon','lime','bell pepper','jalapeno','serrano pepper','poblano pepper','zucchini','spinach','cucumber','chili pepper','corn','avocado','kimchi','broccoli','mushroom','eggplant','okra','cabbage','apple','banana','mango','pineapple','pomegranate','celery','carrot','cauliflower','kale','swiss chard','romaine lettuce','mixed greens','sweet potato','potato','green beans','asparagus'] },
+  { name: 'Herbs', items: ['basil','parsley','cilantro','mint','curry leaves','thyme','oregano','rosemary','bay leaf','dill','tarragon','chives','sage','marjoram','lemongrass'] },
+  { name: 'Spices & Seasoning', items: ['paprika','smoked paprika','cumin','coriander seed','garam masala','curry powder','cayenne pepper','chili powder','chili flakes','black pepper','white pepper','salt','turmeric','cinnamon','nutmeg','clove','cardamom','allspice','fennel seed','dill seed','mustard seed','fenugreek','asafoetida','saffron','star anise','five spice','sumac','za\'atar','garlic powder','onion powder','ginger powder','ras el hanout','berbere','old bay','italian seasoning','herbes de provence','sesame seeds'] },
+  { name: 'Dairy & Eggs', items: ['butter','ghee','cream','yogurt','feta','paneer','parmesan','milk','cheddar','mozzarella','goat cheese','evaporated milk'] },
+  { name: 'Grains & Starches', items: ['rice','basmati rice','pasta','tortilla','rice noodles','noodles','flour','brown rice','bulgur','farro','couscous','polenta','breadcrumbs','panko','egg noodles','bread','baguette'] },
+  { name: 'Pantry & Condiments', items: ['soy sauce','sesame oil','honey','fish sauce','gochujang','miso','harissa','tahini','mustard','coconut milk','coconut flakes','olive oil','cornstarch','sugar','capers','peanut butter','stock','vegetable oil','apple cider vinegar','red wine vinegar','balsamic vinegar','rice vinegar','ketchup','mayonnaise','worcestershire sauce','oyster sauce','tamari','tamarind paste','chili paste','hot sauce','sriracha','jelly','pickles','tomato paste'] },
   { name: 'Canned & Jarred Goods', items: ['chicken broth','hominy','olives','chipotle in adobo','pickled jalapenos','salsa','roasted red peppers'] },
   { name: 'Baking & Sweeteners', items: ['baking soda','baking powder','cream of tartar','cocoa powder','chocolate chips','vanilla extract','confectioners sugar','brown sugar','maple syrup','agave syrup','coffee','tea'] },
   { name: 'Snacks & Cereal', items: ['crackers','pretzels','marshmallows','popcorn kernels','raisins','dried apricots','sunflower seeds','flax seeds','chia seeds','applesauce','cereal','rolled oats'] },
@@ -374,6 +387,8 @@ const RECIPES = [
    steps:['Sauté onion, ginger and garlic until golden.','Add tomato, cumin, garam masala and chickpeas.','Simmer until thickened.']},
   {name:'Tandoori-Style Paprika Chicken', cuisine:'Indian', time:30, ingredients:['chicken','yogurt','paprika','ginger','garlic','lemon','cumin'],
    steps:['Marinate chicken in yogurt, paprika, ginger, garlic, cumin and lemon.','Rest at least 20 minutes.','Roast or pan-sear until charred and cooked through.']},
+  {name:'Chicken Biryani', cuisine:'Indian', time:60, ingredients:['chicken','basmati rice','onion','garlic','ginger','yogurt','tomato','garam masala','turmeric','cumin','coriander seed','cinnamon','clove','cardamom','bay leaf','saffron','mint','cilantro','ghee','chili powder','lemon'],
+   steps:['Marinate chicken in yogurt, garam masala, turmeric, chili powder, ginger and garlic.','Fry onion until deep golden; build a masala with tomato and the remaining whole spices, then cook the chicken through.','Parboil basmati rice with bay leaf, cinnamon, clove and cardamom.','Layer rice over the chicken with saffron, mint, cilantro and ghee, then steam covered on low heat until fragrant.']},
 
   {name:'Ginger Scallion Chicken', cuisine:'Chinese', time:20, ingredients:['chicken','ginger','scallion','soy sauce','sesame oil','rice'],
    steps:['Poach or pan-sear chicken until just cooked.','Warm oil and pour over a pile of grated ginger and scallion.','Stir in soy sauce and sesame oil; serve over rice.']},
@@ -539,6 +554,64 @@ function scoreRecipe(recipe){
   return { matched, missing, score, core };
 }
 
+// Known swaps for common missing ingredients — pantry-style substitutions
+// so a recipe is still doable even without the exact item.
+const SUBSTITUTES = {
+  'saffron': 'a pinch of turmeric for color',
+  'yogurt': 'sour cream, or milk with a squeeze of lemon',
+  'cilantro': 'parsley or mint',
+  'mint': 'basil or parsley',
+  'ghee': 'butter',
+  'curry leaves': 'a bay leaf plus a little extra curry powder',
+  'coconut milk': 'cream, or milk thinned with a splash of water',
+  'fish sauce': 'soy sauce with a squeeze of lime',
+  'buttermilk': 'milk with a splash of vinegar or lemon juice',
+  'heavy cream': 'milk whisked with a little melted butter',
+  'cream': 'milk with a little extra butter',
+  'tamarind paste': 'lime juice with a pinch of brown sugar',
+  'gochujang': 'chili powder mixed with a little miso and honey',
+  'miso': 'soy sauce with a pinch of sugar',
+  'panko': 'crushed crackers or regular breadcrumbs',
+  'breadcrumbs': 'crushed crackers or panko',
+  'tahini': 'peanut butter (different flavor, same texture job)',
+  'harissa': 'chili powder mixed with a little tomato paste and cumin',
+  'sumac': 'a little lemon zest and juice',
+  "za'atar": 'a mix of oregano, sesame seeds and lemon zest',
+  'feta': 'goat cheese, or any salty cheese you have',
+  'parmesan': 'any hard, salty cheese you have',
+  'paneer': 'firm tofu, or a mild cheese that holds its shape',
+  'star anise': 'a pinch of five spice or a small piece of cinnamon',
+  'cardamom': 'a small pinch of cinnamon and nutmeg together',
+  'lemongrass': 'lemon zest',
+  'rice vinegar': 'apple cider vinegar with a pinch of sugar',
+  'worcestershire sauce': 'soy sauce with a dash of vinegar',
+  'oyster sauce': 'soy sauce with a pinch of sugar',
+  'basmati rice': 'any long-grain rice you have',
+  'chicken broth': 'water with a bouillon cube, or plain water in a pinch',
+  'coriander seed': 'a pinch of ground cumin',
+  'asafoetida': 'a little extra onion and garlic powder',
+};
+
+const GENERIC_SWAP = {
+  'Herbs': 'optional — the dish still works without it',
+  'Spices & Seasoning': 'optional — skip it or lean on the spices you do have',
+  'Dairy & Eggs': 'swap for another dairy item you have',
+  'Produce & Aromatics': 'swap for a similar vegetable you have',
+  'Pantry & Condiments': 'swap for a similar sauce or condiment you have',
+  'Canned & Jarred Goods': 'swap for a similar canned item, or skip',
+  'Grains & Starches': 'swap for another grain or starch you have',
+  'Proteins & Legumes': 'trickier to swap — best made with a protein you have',
+  'Baking & Sweeteners': 'swap for another sweetener you have',
+  'Snacks & Cereal': 'optional add-in — skip if you don\'t have it',
+  'Freezer': 'swap for a fresh version if you have one',
+};
+
+function swapTip(ing){
+  if (SUBSTITUTES[ing]) return SUBSTITUTES[ing];
+  const cat = ingredientCategory(ing);
+  return GENERIC_SWAP[cat] || 'swap for something similar you already have';
+}
+
 function dialSvg(pct, id){
   const r = 24, c = 2*Math.PI*r;
   const offset = c - (pct/100)*c;
@@ -555,7 +628,7 @@ function dialSvg(pct, id){
 }
 
 function recipeCard(recipe){
-  const { matched, score } = scoreRecipe(recipe);
+  const { matched, missing, score } = scoreRecipe(recipe);
   const pct = Math.round(score*100);
   return `
     <div class="rcard">
@@ -563,15 +636,23 @@ function recipeCard(recipe){
         <div class="rcard-title-block">
           <div class="eyebrow">${recipe.cuisine}</div>
           <h3>${recipe.name}</h3>
-          <div class="meta">${recipe.time} min · easy</div>
+          <div class="meta">${recipe.time} min · easy · ${matched.length}/${matched.length + missing.length} ingredients on hand</div>
         </div>
         ${dialSvg(pct)}
       </div>
       <div class="ing-lists">
         <div class="ing-row">
-          <span class="label">Uses</span>
+          <span class="label">Have</span>
           ${matched.length ? matched.map(i=>`<span class="tag have">${i}</span>`).join('') : '<span class="meta">—</span>'}
         </div>
+        ${missing.length ? `
+        <div class="ing-row">
+          <span class="label">Need</span>
+          ${missing.map(i=>`<span class="tag need">${i}</span>`).join('')}
+        </div>
+        <ul class="swap-list">
+          ${missing.map(i => `<li><strong>${i}</strong> — ${swapTip(i)}</li>`).join('')}
+        </ul>` : `<div class="ing-row"><span class="label">Need</span><span class="meta">nothing else — you have it all!</span></div>`}
       </div>
       <details class="steps">
         <summary>Method</summary>
@@ -594,23 +675,23 @@ function renderResults(){
       <div class="empty-state">
         <div class="icon">🍲</div>
         <h3>Nothing to cook with yet</h3>
-        <p>Tap a few ingredients above — even just three or four — and recipes you can fully make right now, from across the world's cuisines, will show up here.</p>
+        <p>Tap a few ingredients above — even just three or four — and recipes from across the world's cuisines will show up here, ranked by how close you are to making them, with swap ideas for anything you're missing.</p>
       </div>`;
     return;
   }
 
   let scored = RECIPES.map(r => ({ recipe: r, ...scoreRecipe(r) }))
-    .filter(r => r.score === 1)
-    .sort((a,b) => b.matched.length - a.matched.length);
+    .filter(r => r.matched.length > 0)
+    .sort((a,b) => b.score - a.score || b.matched.length - a.matched.length);
 
   if (scored.length === 0){
-    resultsTitle.textContent = 'Nothing fully makeable yet';
+    resultsTitle.textContent = 'No matches yet';
     resultsSub.textContent = `${selected.size} ingredient${selected.size>1?'s':''} selected`;
     resultsArea.innerHTML = `
       <div class="empty-state">
         <div class="icon">🤔</div>
-        <h3>Not quite there yet</h3>
-        <p>Nothing on the shelf right now can be made 100% with what you've selected. Add a few more things you actually have — common ones like garlic, onion, or ginger tend to unlock the most recipes.</p>
+        <h3>No overlap so far</h3>
+        <p>None of the recipes here share an ingredient with your picks yet. Try adding a common aromatic like garlic, onion, or ginger.</p>
       </div>`;
     return;
   }
